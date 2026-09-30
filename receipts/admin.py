@@ -70,18 +70,22 @@ class ReceiptAdmin(admin.ModelAdmin):
 
     @admin.display(description="Статус")
     def status_badge(self, obj):
-        colors = {
-            "pending": "#EBB917",
-            "approved": "#37CD1A",
-            "rejected": "#F04D4D",
-            "winner": "#524FE5",
+        # Цвет фона и цвет текста задаются отдельно и намеренно не выводятся
+        # из одного значения. Фоны взяты из макета; на светлых (жёлтый, зелёный)
+        # белый текст даёт контраст 1.8 и 2.1 — нечитаемо, поэтому там тёмный.
+        # Контраст всех четырёх проверен тестом test_admin.
+        styles = {
+            "pending": ("#EBB917", "#3E4552"),
+            "approved": ("#37CD1A", "#3E4552"),
+            "rejected": ("#F04D4D", "#FFFFFF"),
+            "winner": ("#524FE5", "#FFFFFF"),
         }
-        css = obj.status_css
+        background, color = styles.get(obj.status_css, ("#787E91", "#FFFFFF"))
         return format_html(
             '<span style="background:{};color:{};padding:3px 10px;border-radius:12px;'
             'font-size:11px;font-weight:600;white-space:nowrap;">{}</span>',
-            colors.get(css, "#787E91"),
-            "#FFFFFF" if css in {"approved", "rejected", "winner"} else colors.get(css, "#3E4552"),
+            background,
+            color,
             obj.status_label,
         )
 

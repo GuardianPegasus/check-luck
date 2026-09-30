@@ -3,13 +3,31 @@ from __future__ import annotations
 
 import csv
 import io
+import re
 
 from django.contrib import admin
 from django.urls import reverse
 
+from receipts.admin import ReceiptAdmin
 from receipts.models import Receipt
 
 from .base import BaseTestCase, make_receipt
+
+
+def _channels(hex_color: str) -> tuple[float, float, float]:
+    """Относительная яркость по WCAG — чтобы поймать нечитаемый текст."""
+    r, g, b = (int(hex_color[i : i + 2], 16) / 255 for i in (1, 3, 5))
+    channels = []
+    for value in (r, g, b):
+        channels.append(value / 12.92 if value <= 0.04045 else ((value + 0.055) / 1.055) ** 2.4)
+    r, g, b = channels
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+
+def contrast(first: str, second: str) -> float:
+    """Контрастность двух цветов по WCAG: 1 — неразличимы, 21 — макс."""
+    lighter, darker = sorted((_channels(first), _channels(second)), reverse=True)
+    return (lighter + 0.05) / (darker + 0.05)
 
 
 class ReceiptAdminTests(BaseTestCase):
@@ -109,3 +127,97 @@ class ReceiptAdminTests(BaseTestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertNotIn("text/csv", response.get("Content-Type", ""))
+
+
+class AdminStatusBadgeTests(BaseTestCase):
+    """Бейдж статуса в админке обязан быть читаемым.
+
+    Регрессия: текст бейджа брался из того же словаря, что и фон, и у
+    «В обработке» получался жёлтый текст на жёлтом фоне — статус не читался.
+
+    Контраст проверен по WCAG: для 11px-текста норма — 4.5. Белый на жёлтом
+    даёт 1.83, на зелёном 2.12, поэтому там тёмный текст.
+    """
+
+    # Ожидаемое соответствие: фон и цвет текста по статусам.
+    # Меняя цвета, правьте тут — тест не даст сделать статус нечитаемым.
+    EXPECTED = {
+        "В обработке": ("#EBB917", "#3E4552"),
+        "Обработан": ("#37CD1A", "#3E4552"),
+        "Ошибка": ("#F04D4D", "#FFFFFF"),
+        "Вы выиграли": ("#524FE5", "#FFFFFF"),
+    }
+
+    def setUp(self):
+        super().setUp()
+        self.client.force_login(self.moderator)
+
+    @staticmethod
+    def parse(markup):
+        background = re.search(r"background:\s*(#[0-9A-Fa-f]{6})", markup).group(1)
+        color = re.search(r"color:\s*(#[0-9A-Fa-f]{6})", markup).group(1)
+        label = re.search(r'white-space:nowrap;">([^<]+)</span>', markup).group(1)
+        return background.upper(), color.upper(), label
+
+    def badges(self):
+        """{подпись: (фон, цвет текста)} — ключ совпадает с показанной подписью."""
+        receipt_admin = ReceiptAdmin(Receipt, admin.site)
+        winner = make_receipt(self.user, n=24, status=Receipt.Status.APPROVED, is_winner=True)
+        parsed = [
+            self.parse(receipt_admin.status_badge(receipt))
+            for receipt in (
+                make_receipt(self.user, n=21, status=Receipt.Status.PENDING),
+                make_receipt(self.user, n=22, status=Receipt.Status.APPROVED),
+                make_receipt(self.user, n=23, status=Receipt.Status.REJECTED),
+                winner,
+            )
+        ]
+        return {_label: (background, color) for background, color, _label in parsed}
+
+    def test_badge_colors_match_expected(self):
+        for label, (background, color) in self.badges().items():
+            with self.subTest(status=label):
+                self.assertEqual((background, color), self.EXPECTED[label])
+
+    def test_every_badge_is_readable(self):
+        for label, (background, color) in self.badges().items():
+            with self.subTest(status=label):
+                self.assertNotEqual(
+                    background, color, "текст бейджа совпал с фоном — статус не читается"
+                )
+                self.assertGreaterEqual(
+                    contrast(background, color),
+                    3.0,
+                    "контраст текста и фона ниже минимума для 11px",
+                )
+
+    def test_light_badges_meet_wcag_aa(self):
+        """На светлых фонах текст обязан проходить AA для мелкого шрифта."""
+        for label, (background, color) in self.badges().items():
+            if background not in {"#EBB917", "#37CD1A"}:
+                continue
+            with self.subTest(status=label):
+                self.assertGreaterEqual(contrast(background, color), 4.5)
+
+    def test_badge_label_matches_cabinet_label(self):
+        """Подпись в админке и в кабинете не должна разъезжаться."""
+        receipt_admin = ReceiptAdmin(Receipt, admin.site)
+        for n, status in enumerate(
+            [Receipt.Status.PENDING, Receipt.Status.APPROVED, Receipt.Status.REJECTED], start=31
+        ):
+            receipt = make_receipt(self.user, n=n, status=status)
+            with self.subTest(status=status):
+                _, _, shown = self.parse(receipt_admin.status_badge(receipt))
+                self.assertEqual(shown, receipt.status_label)
+
+    def test_all_statuses_covered(self):
+        """Каждый статус из модели попал в бейджи — новый статус не забудем."""
+        self.assertEqual(
+            set(self.badges()),
+            {
+                Receipt(status=Receipt.Status.PENDING).status_label,
+                Receipt(status=Receipt.Status.APPROVED).status_label,
+                Receipt(status=Receipt.Status.REJECTED).status_label,
+                Receipt(status=Receipt.Status.APPROVED, is_winner=True).status_label,
+            },
+        )
