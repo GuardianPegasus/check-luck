@@ -1,0 +1,32 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+  <h1>Отклонить чеки</h1>
+  <p>Будет обработано чеков: <strong>{{ queryset.count }}</strong></p>
+
+  {% if form.errors %}
+    <ul class="errorlist">
+      {% for field, errors in form.errors.items %}
+        {% for error in errors %}<li>{{ field }}: {{ error }}</li>{% endfor %}
+      {% endfor %}
+    </ul>
+  {% endif %}
+
+  <form method="post">
+    {% csrf_token %}
+    {% for receipt in queryset %}
+      <input type="hidden" name="{{ action_checkbox_name }}" value="{{ receipt.pk }}">
+    {% endfor %}
+    <input type="hidden" name="action" value="reject_selected">
+    <input type="hidden" name="confirm_marker" value="1">
+
+    <fieldset class="module aligned">
+      {{ form.as_p }}
+    </fieldset>
+
+    <div class="submit-row">
+      <input type="submit" value="Применить" class="default" name="_apply">
+      <a href="{{ request.get_full_path }}" class="button cancel-link">Отмена</a>
+    </div>
+  </form>
+{% endblock %}
