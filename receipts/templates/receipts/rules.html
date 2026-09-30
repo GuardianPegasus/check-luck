@@ -1,0 +1,60 @@
+{% extends "receipts/base.html" %}
+
+{% block title %}Правила акции — Чек на удачу{% endblock %}
+
+{% block content %}
+<section class="card card--rules">
+  <h1 class="card__title">Правила акции</h1>
+  <p class="card__subtitle">Всё, что нужно знать про «Чек на удачу»</p>
+
+  <dl class="rules">
+    <div class="rules__row">
+      <dt>Период акции</dt>
+      <dd>{{ promo.period_label }}</dd>
+    </div>
+    <div class="rules__row">
+      <dt>Минимальная сумма чека</dt>
+      <dd>от {{ promo.min_amount }} ₽</dd>
+    </div>
+    <div class="rules__row">
+      <dt>Кто может участвовать</dt>
+      <dd>Любой зарегистрированный пользователь сайта.</dd>
+    </div>
+    {% if promo.max_receipts_per_user %}
+    <div class="rules__row">
+      <dt>Лимит чеков</dt>
+      <dd>{{ promo.max_receipts_per_user }} на участника</dd>
+    </div>
+    {% endif %}
+  </dl>
+
+  <h2 class="rules__subtitle">Как участвовать</h2>
+  <ol class="rules__list">
+    <li>Купите товар в магазине, участвующем в акции, и получите кассовый чек.</li>
+    <li>Зарегистрируйте чек в личном кабинете: внесите ФН, номер чека (ФД), ФП, дату и время покупки и сумму.</li>
+    <li>Чек попадёт в статус «На проверке» и уедет модератору.</li>
+    <li>После проверки модератор примет чек или отклонит его с указанием причины.</li>
+    <li>Принятые чеки участвуют в розыгрыше.</li>
+  </ol>
+
+  <h2 class="rules__subtitle">Частые вопросы</h2>
+  <div class="faq">
+    <details class="faq__item">
+      <summary>Можно ли отправить чек повторно?</summary>
+      <p>Один и тот же чек (связка ФН + ФД + ФП) нельзя зарегистрировать дважды — ни дважды одному человеку, ни разным людям. Но если ваш чек <strong>отклонили</strong>, вы можете отправить его заново: та же запись вернётся в проверку, а счётчик попыток увеличится.</p>
+    </details>
+    <details class="faq__item">
+      <summary>В каком часовом поясе считается период акции?</summary>
+      <p>Границы периода считаются в часовом поясе акции ({{ promo.timezone_label }}). Покупка в {{ promo.start_date|date:"d.m.Y" }} в 00:00 и в {{ promo.end_date|date:"d.m.Y" }} в 23:59 попадают в акцию независимо от того, где находится пользователь.</p>
+    </details>
+    <details class="faq__item">
+      <summary>Сколько ждать проверки?</summary>
+      <p>Обычно до 5 рабочих дней. Статус в кабинете обновляется автоматически — перезагружать страницу не нужно.</p>
+    </details>
+    <details class="faq__item">
+      <summary>Фото чека обязательно?</summary>
+      <p>Нет. Это необязательный способ ускорить проверку: загрузите снимок чека ({{ promo.photo_allowed_types_label }}, до {{ promo.photo_max_mb }} МБ), и модератору будет проще сверить данные.</p>
+    </details>
+  </div>
+</section>
+{% endblock %}

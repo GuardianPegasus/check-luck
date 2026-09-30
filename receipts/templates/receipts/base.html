@@ -1,0 +1,91 @@
+{% load static %}<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Чек на удачу{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Mulish:wght@400;500;600;700&family=Google+Sans:wght@500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  {% block head_extra %}{% endblock %}
+</head>
+<body class="page">
+  <header class="topbar">
+    <div class="topbar__inner">
+      <div class="topbar__left">
+        <a class="brand" href="{% url 'receipts:cabinet' %}">
+          <span class="brand__mark" aria-hidden="true"></span>
+          <span class="brand__text">Чек на&nbsp;удачу</span>
+        </a>
+        <nav class="topbar__nav" aria-label="Основная навигация">
+          <a class="navlink{% if request.resolver_match.url_name == 'cabinet' %} navlink--active{% endif %}"
+             href="{% url 'receipts:cabinet' %}">
+            <svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 6.5 8 2.5l5.5 4v7a1 1 0 0 1-1 1h-9a1 1 0 0 1-1-1z" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/><path d="M6 14.5v-4h4v4" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>
+            <span>Личный кабинет</span>
+          </a>
+          <a class="navlink{% if request.resolver_match.url_name == 'rules' %} navlink--active{% endif %}"
+             href="{% url 'receipts:rules' %}">
+            <svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M6.4 6.2a1.7 1.7 0 1 1 2.2 1.6c-.4.15-.6.45-.6.85v.35" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><circle cx="8" cy="11.6" r=".7" fill="currentColor"/></svg>
+            <span>Правила</span>
+          </a>
+          {% if user.is_staff %}
+          <a class="navlink" href="{% url 'admin:index' %}">
+            <svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="2.2" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M8 1.8v1.6M8 12.6v1.6M14.2 8h-1.6M3.4 8H1.8M12.4 3.6l-1.1 1.1M4.7 11.3l-1.1 1.1M12.4 12.4l-1.1-1.1M4.7 4.7 3.6 3.6" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+            <span>Модерация</span>
+          </a>
+          {% endif %}
+        </nav>
+      </div>
+
+      {% if user.is_authenticated %}
+      <div class="topbar__right">
+        <div class="userbox">
+          <span class="userbox__avatar" aria-hidden="true">{{ user.get_username|first|upper }}</span>
+          <span class="userbox__meta">
+            <span class="userbox__name">{{ user.get_full_name|default:user.get_username }}</span>
+            <span class="userbox__email">{{ user.email|default:"—" }}</span>
+          </span>
+        </div>
+        <form method="post" action="{% url 'receipts:logout' %}" class="userbox__logout">
+          {% csrf_token %}
+          <button type="submit" class="navlink navlink--danger" title="Выйти">
+            <svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3.5H4.2a1.2 1.2 0 0 0-1.2 1.2v6.6a1.2 1.2 0 0 0 1.2 1.2H10" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/><path d="M8.4 8h5m0 0-1.8-1.8M13.4 8l-1.8 1.8" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <span class="userbox__logout-text">Выйти</span>
+          </button>
+        </form>
+      </div>
+      {% else %}
+      <div class="topbar__right">
+        <a class="navlink" href="{% url 'receipts:login' %}">
+          <svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="5.2" r="2.8" fill="none" stroke="currentColor" stroke-width="1.2"/><path d="M2.8 13.4a5.2 5.2 0 0 1 10.4 0" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
+          <span>Войти</span>
+        </a>
+      </div>
+      {% endif %}
+    </div>
+  </header>
+
+  <main class="page__main">
+    {% if messages %}
+    <div class="toasts">
+      {% for message in messages %}
+      <div class="toast toast--{{ message.tags }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="page__footer">
+    <div class="page__footer-inner">
+      <span>Чек на удачу — тестовое промо</span>
+      {% block footer_extra %}{% endblock %}
+    </div>
+  </footer>
+
+  <script src="{% static 'js/app.js' %}" defer></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

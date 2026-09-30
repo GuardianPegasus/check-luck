@@ -1,0 +1,140 @@
+{% extends "receipts/base.html" %}
+{% load static %}
+
+{% block title %}Регистрация чека — Чек на удачу{% endblock %}
+
+{% block content %}
+<section class="card card--modal" id="register">
+  <header class="card__head card__head--stack">
+    <h1 class="card__title">Регистрация чека</h1>
+    <p class="card__subtitle">Введите необходимые данные с чека</p>
+    <p class="promo-period">Период акции: <strong>{{ promo.period_label }}</strong></p>
+  </header>
+
+  <div id="form-alert" class="alert alert--error" hidden role="alert"></div>
+
+  {% comment %}
+Крестик внутри формы: вместе с ней исчезает на экране успеха,
+где по макету он не нужен.
+{% endcomment %}
+  <form method="post" enctype="multipart/form-data" novalidate
+        data-register-form
+        data-min-amount="{{ promo.min_amount }}"
+        data-start-date="{{ promo.start_date|date:'Y-m-d' }}"
+        data-end-date="{{ promo.end_date|date:'Y-m-d' }}"
+        data-photo-types="{{ promo.photo_allowed_types|join:',' }}"
+        data-photo-max-mb="{{ promo.photo_max_mb }}"
+        data-qr-url="{% url 'receipts:import_qr' %}"
+        action="{% url 'receipts:register' %}">
+    <a class="card__close" href="{% url 'receipts:cabinet' %}" aria-label="Закрыть и вернуться в кабинет">
+      <svg class="icon" viewBox="0 0 28 28" aria-hidden="true"><path d="M8 8l12 12M20 8L8 20" stroke="#787E91" stroke-width="1.5" stroke-linecap="round"/></svg>
+    </a>
+    {% csrf_token %}
+
+    {# --- Бонус: вставка строки из QR-кода --- #}
+    <details class="qr-helper">
+      <summary class="qr-helper__summary">
+        <svg class="icon" viewBox="0 0 16 16" aria-hidden="true"><path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h2v2H9zM12.5 9H14v2h-1.5zM9 12.5h2V14H9zM12.5 12.5H14V14h-1.5z" fill="none" stroke="currentColor" stroke-width="1.1"/></svg>
+        <span>Вставить строку из QR-кода</span>
+      </summary>
+      <div class="qr-helper__body">
+        <textarea class="field__input field__input--area" rows="3" data-qr-input
+                  placeholder="t=20260101T120000&amp;s=12000.00&amp;fn=7707081830&amp;i=0000000123&amp;fp=…"
+                  aria-label="Строка из QR-кода чека"></textarea>
+        <div class="qr-helper__actions">
+          <button type="button" class="btn btn--ghost" data-qr-apply>Заполнить форму</button>
+          <span class="qr-helper__msg" data-qr-msg></span>
+        </div>
+      </div>
+    </details>
+
+    <div class="form-grid">
+      {% comment %}
+Порядок и состав полей — как в макете:
+ФН → Номер чека (ФД) → ФП → Дата и время покупки → Сумма → Фото.
+{% endcomment %}
+
+      <div class="field{% if form.fiscal_number.errors %} field--invalid{% endif %}">
+        <label class="field__label" for="{{ form.fiscal_number.id_for_label }}">ФН<span class="field__req" aria-hidden="true">*</span></label>
+        {{ form.fiscal_number }}
+        {% if form.fiscal_number.errors %}
+        <p class="field__error" id="id_fiscal_number_error" data-error-for="fiscal_number">{{ form.fiscal_number.errors|striptags }}</p>
+        {% endif %}
+      </div>
+
+      <div class="field{% if form.document_number.errors %} field--invalid{% endif %}">
+        <label class="field__label" for="{{ form.document_number.id_for_label }}">Номер чека (ФД)<span class="field__req" aria-hidden="true">*</span></label>
+        {{ form.document_number }}
+        {% if form.document_number.errors %}
+        <p class="field__error" id="id_document_number_error" data-error-for="document_number">{{ form.document_number.errors|striptags }}</p>
+        {% endif %}
+      </div>
+
+      <div class="field{% if form.fiscal_signature.errors %} field--invalid{% endif %}">
+        <label class="field__label" for="{{ form.fiscal_signature.id_for_label }}">ФП<span class="field__req" aria-hidden="true">*</span></label>
+        {{ form.fiscal_signature }}
+        {% if form.fiscal_signature.errors %}
+        <p class="field__error" id="id_fiscal_signature_error" data-error-for="fiscal_signature">{{ form.fiscal_signature.errors|striptags }}</p>
+        {% endif %}
+      </div>
+
+      <div class="field__pair">
+        <div class="field{% if form.purchase_date.errors %} field--invalid{% endif %}">
+          <label class="field__label" for="{{ form.purchase_date.id_for_label }}">{{ form.purchase_date.label }}<span class="field__req" aria-hidden="true">*</span></label>
+          {{ form.purchase_date }}
+          {% if form.purchase_date.errors %}
+          <p class="field__error" id="id_purchase_date_error" data-error-for="purchase_date">{{ form.purchase_date.errors|striptags }}</p>
+          {% endif %}
+        </div>
+        <div class="field{% if form.purchase_time.errors %} field--invalid{% endif %}">
+          <label class="field__label" for="{{ form.purchase_time.id_for_label }}">{{ form.purchase_time.label }}</label>
+          {{ form.purchase_time }}
+          {% if form.purchase_time.errors %}
+          <p class="field__error" id="id_purchase_time_error" data-error-for="purchase_time">{{ form.purchase_time.errors|striptags }}</p>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="field{% if form.amount.errors %} field--invalid{% endif %}">
+        <label class="field__label" for="{{ form.amount.id_for_label }}">{{ form.amount.label }}<span class="field__req" aria-hidden="true">*</span></label>
+        {{ form.amount }}
+        {% if form.amount.errors %}
+        <p class="field__error" id="id_amount_error" data-error-for="amount">{{ form.amount.errors|striptags }}</p>
+        {% endif %}
+      </div>
+
+      <div class="field{% if form.photo.errors %} field--invalid{% endif %}">
+        <label class="field__label" for="{{ form.photo.id_for_label }}">Фото чека</label>
+        {{ form.photo }}
+        <p class="field__hint">{{ form.photo.help_text }} — необязательно</p>
+        {% if form.photo.errors %}
+        <p class="field__error" id="id_photo_error" data-error-for="photo">{{ form.photo.errors|striptags }}</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <p class="form-global-error" data-error-for="__all__"{% if not form.non_field_errors %} hidden{% endif %}>
+      {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+    </p>
+
+    <button type="submit" class="btn btn--primary btn--wide" data-submit>
+      <svg class="icon" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <span>Загрузить</span>
+    </button>
+
+    <p class="form-legend">Поля, отмеченные <span class="field__req">*</span>, обязательны</p>
+  </form>
+
+  {# --- Блок успеха (макет «Сообщение об успехе после отправки») --- #}
+  <div class="success" data-success hidden>
+    <span class="success__icon" aria-hidden="true">
+      <svg viewBox="0 0 44 44"><path d="M11 22.5l7.5 7.5L33 15" fill="none" stroke="#37CD1A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </span>
+    <h2 class="success__title" data-success-title>Ваш чек загружен</h2>
+    <p class="success__text" data-success-text>Мы уже начали анализировать ваши покупки. Это займет всего пару секунд.</p>
+    <a class="btn btn--primary" href="{% url 'receipts:cabinet' %}" data-success-link>На главную</a>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}<script src="{% static 'js/register.js' %}" defer></script>{% endblock %}
