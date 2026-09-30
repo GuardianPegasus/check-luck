@@ -1,0 +1,8 @@
+# Храним в репозитории LF, чтобы диффы и тесты не зависели от настроек
+# конкретной машины.
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.webp binary
