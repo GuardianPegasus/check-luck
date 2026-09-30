@@ -186,13 +186,19 @@ RECEIPT_PHOTO_ALLOWED_TYPES = tuple(
     if t.strip()
 )
 
-# Показываем подробные ошибки 500 только при DEBUG
+# Показываем подробные ошибки 500 только при DEBUG.
+# На боевом сервере (DEBUG=False) включаем защищённые cookie и HSTS.
 if not DEBUG:
     SECURE_CONTENT_TYPE_NOSNIFF = True
     SECURE_BROWSER_XSS_FILTER = True
     SESSION_COOKIE_SECURE = env_bool("SESSION_COOKIE_SECURE", True)
     CSRF_COOKIE_SECURE = env_bool("CSRF_COOKIE_SECURE", True)
-    SECURE_HSTS_SECONDS = 0
+    SECURE_HSTS_SECONDS = env_int("SECURE_HSTS_SECONDS", 0)
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = env_bool("SECURE_HSTS_INCLUDE_SUBDOMAINS", False)
+    SECURE_HSTS_PRELOAD = env_bool("SECURE_HSTS_PRELOAD", False)
+    if env_bool("DJANGO_BEHIND_HTTPS_PROXY", False):
+        # За nginx/прокси исходный запрос приходит по http
+        SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
