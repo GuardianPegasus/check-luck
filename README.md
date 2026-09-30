@@ -20,26 +20,24 @@
 ## Быстрый старт
 
 ```bash
-cp .env.example .env          # Windows: copy .env.example .env
-# при необходимости поменяйте DJANGO_SECRET_KEY и DJANGO_ALLOWED_HOSTS
-docker compose up             # или docker compose up --build
+git clone https://github.com/GuardianPegasus/check-luck.git
+cd check-luck
+docker compose up
 ```
 
-Сайт: <http://localhost:8000/> · Админка: <http://localhost:8000/admin/>
+Три команды — и сайт открыт на <http://localhost:8000/>. Файл `.env` для
+этого не нужен: приложение берёт те же значения по умолчанию, что и
+`docker-compose.yml`. Скопируйте `.env.example` в `.env`, только если хотите
+поменять даты акции, минимальную сумму или другие параметры.
 
 `docker compose up` поднимает PostgreSQL, дожидается его готовности,
 накатывает миграции, собирает статику и запускает gunicorn на `:8000`.
 Загруженные фото и данные Postgres живут в именованных томах и переживают
 пересборку контейнера.
 
-Создать модератора (обычный `staff`-пользователь, отдельный интерфейс ему
-не нужен):
+### Посмотреть, что внутри
 
-```bash
-docker compose exec web python manage.py createsuperuser
-```
-
-Посмотреть на заполненный кабинет — можно не заводить чеки вручную:
+Чтобы не заводить чеки руками, наполните базу демо-данными:
 
 ```bash
 docker compose exec web python manage.py seed_demo
@@ -47,7 +45,13 @@ docker compose exec web python manage.py seed_demo
 
 Появятся пользователи `demo` и `moderator` (пароль у обоих `demo12345`) и
 14 чеков всех статусов: на проверке, принятые, выигравшие и отклонённые с
-причинами.
+причинами. Сайт: <http://localhost:8000/> · Админка: <http://localhost:8000/admin/>
+
+Свой модератор вместо демо:
+
+```bash
+docker compose exec web python manage.py createsuperuser
+```
 
 ### Без Docker
 

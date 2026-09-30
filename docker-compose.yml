@@ -15,11 +15,16 @@ services:
 
   web:
     build: .
-    env_file:
-      - .env
+    # Файл .env не обязателен: config/settings.py читает /app/.env сам
+    # (в каталог проекта он смонтирован), а если файла нет — берёт те же
+    # значения по умолчанию, что и здесь. Так `docker compose up` работает
+    # сразу после клонирования, без подготовительных шагов.
     environment:
       POSTGRES_HOST: db
       POSTGRES_PORT: 5432
+      POSTGRES_DB: ${POSTGRES_DB:-luck}
+      POSTGRES_USER: ${POSTGRES_USER:-luck}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-luck}
     volumes:
       - .:/app
       - mediadata:/app/media
